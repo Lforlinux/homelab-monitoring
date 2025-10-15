@@ -1,0 +1,67 @@
+# Docker volumes and data
+prometheus-data/
+grafana-data/
+prometheus-data/
+grafana-data/
+.env
+# Backup files
+*.backup
+*.bak
+*-backup.tar.gz
+*-backup.tar
+
+# Logs
+*.log
+logs/
+
+# Environment files with secrets (contains passwords, IPs, etc.)
+.env
+.env.local
+.env.production
+
+# Security notes (contains sensitive information)
+SECURITY-NOTES.md
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.temp
+
+# Node modules (if any)
+node_modules/
+
+# Python cache (if any)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Local configuration overrides
+docker-compose.override.yml
+local-config/
+
+# SSL certificates
+*.pem
+*.key
+*.crt
+*.csr
+
+# Monitoring data exports
+exports/
+backups/

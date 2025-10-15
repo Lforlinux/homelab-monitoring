@@ -1,0 +1,133 @@
+# Example: How to add exporters to your other docker-compose projects
+# This shows how to monitor a typical web application stack
+
+version: '3.8'
+
+services:
+  # Your main application
+  web-app:
+    image: nginx:alpine
+    container_name: web-app
+    ports:
+      - "80:80"
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-appdb}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # Cache
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # EXPORTERS - Add these to enable monitoring by your homelab Prometheus
+
+  # PostgreSQL Exporter
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:latest
+    container_name: postgres-exporter
+    environment:
+      - DATA_SOURCE_NAME=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-appdb}?sslmode=disable
+    ports:
+      - "9187:9187"  # Standard PostgreSQL exporter port
+    networks:
+      - app-network
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  # Redis Exporter
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: redis-exporter
+    environment:
+      - REDIS_ADDR=redis://redis:6379
+    ports:
+      - "9121:9121"  # Standard Redis exporter port
+    networks:
+      - app-network
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  # Nginx Exporter (if nginx has status module enabled)
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:latest
+    container_name: nginx-exporter
+    command:
+      - '-nginx.scrape-uri=http://web-app:80/nginx_status'
+    ports:
+      - "9113:9113"  # Standard Nginx exporter port
+    networks:
+      - app-network
+    depends_on:
+      - web-app
+    restart: unless-stopped
+
+  # Node Exporter (for host metrics)
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: app-node-exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - app-network
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+    driver: local
+
+networks:
+  app-network:
+    driver: bridge
+
+# After adding exporters to your project:
+# 1. Update your homelab Prometheus configuration (monitoring/prometheus.yml)
+# 2. Add scrape configs for each exporter:
+#
+# scrape_configs:
+#   - job_name: 'your-app-postgres'
+#     static_configs:
+#       - targets: ['your-app-host:9187']
+#   - job_name: 'your-app-redis'
+#     static_configs:
+#       - targets: ['your-app-host:9121']
+#   - job_name: 'your-app-nginx'
+#     static_configs:
+#       - targets: ['your-app-host:9113']
+#   - job_name: 'your-app-node'
+#     static_configs:
+#       - targets: ['your-app-host:9100']
+#
+# 3. Reload Prometheus configuration:
+#    curl -X POST http://localhost:9090/-/reload
