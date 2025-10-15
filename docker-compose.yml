@@ -6,15 +6,12 @@ services:
       - "9090:9090"
     volumes:
       - prometheus-data:/prometheus
-    configs:
-      - source: prometheus_config
-        target: /etc/prometheus/prometheus.yml
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
       - '--storage.tsdb.retention.time=30d'
       - '--web.enable-lifecycle'
       - '--web.enable-admin-api'
+      - '--web.external-url=http://localhost:9090'
     networks:
       - monitoring
     restart: unless-stopped
@@ -31,15 +28,6 @@ services:
       - GF_FEATURE_TOGGLES_ENABLE=ngalert
     volumes:
       - grafana-data:/var/lib/grafana
-    configs:
-      - source: grafana_datasource
-        target: /etc/grafana/provisioning/datasources/prometheus.yml
-      - source: grafana_dashboards_config
-        target: /etc/grafana/provisioning/dashboards/dashboards.yml
-      - source: synology_dashboard
-        target: /var/lib/grafana/dashboards/synology-nas-dashboard-new.json
-      - source: rag_dashboard
-        target: /var/lib/grafana/dashboards/rag-stack-dashboard.json
     networks:
       - monitoring
     restart: unless-stopped
@@ -90,14 +78,3 @@ networks:
   monitoring:
     driver: bridge
 
-configs:
-  prometheus_config:
-    file: ./monitoring/prometheus.yml
-  grafana_datasource:
-    file: ./monitoring/grafana/provisioning/datasources/prometheus.yml
-  grafana_dashboards_config:
-    file: ./monitoring/grafana/provisioning/dashboards/dashboards.yml
-  synology_dashboard:
-    file: ./monitoring/grafana/dashboards/synology-nas-dashboard-new.json
-  rag_dashboard:
-    file: ./monitoring/grafana/dashboards/rag-stack-dashboard.json
