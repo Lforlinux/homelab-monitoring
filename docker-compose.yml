@@ -40,19 +40,20 @@ services:
 
   # Optional: Node Exporter for host system monitoring
   node-exporter:
-    image: prom/node-exporter:latest
-    container_name: homelab-node-exporter
+    image: ghcr.io/josephrpalmer/octopus-usage-exporter:0.1.5
+    container_name: homelab-octopus-exporter-alt
     ports:
-      - "9100:9100"
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-    command:
-      - '--path.procfs=/host/proc'
-      - '--path.rootfs=/rootfs'
-      - '--path.sysfs=/host/sys'
-      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+      - "9121:9120"
+    environment:
+      - PROM_PORT=9120
+      - INTERVAL=300
+      - API_KEY=${OCTOPUS_API_KEY}
+      - ACCOUNT_NUMBER=${OCTOPUS_ACCOUNT_NUMBER}
+      - GAS=True
+      - ELECTRIC=True
+      - NG_METRICS=False
+      - TARIFF_RATES=True
+      - TARIFF_REMAINING=True
     networks:
       - monitoring
     restart: unless-stopped
@@ -72,22 +73,21 @@ services:
       - monitoring
     restart: unless-stopped
 
-  # Octopus Energy Usage Exporter
+  # Octopus Energy REST API Exporter
   octopus-exporter:
-    image: ghcr.io/josephrpalmer/octopus-usage-exporter:latest
+    build: ./octopus-rest-exporter
     container_name: homelab-octopus-exporter
     ports:
       - "9120:9120"
     environment:
       - PROM_PORT=9120
       - INTERVAL=300
-      - API_KEY=${OCTOPUS_API_KEY}
-      - ACCOUNT_NUMBER=${OCTOPUS_ACCOUNT_NUMBER}
-      - GAS=True
-      - ELECTRIC=True
-      - NG_METRICS=True
-      - TARIFF_RATES=True
-      - TARIFF_REMAINING=True
+      - OCTOPUS_API_KEY=${OCTOPUS_API_KEY}
+      - OCTOPUS_ACCOUNT_NUMBER=${OCTOPUS_ACCOUNT_NUMBER}
+      - OCTOPUS_ELECTRIC_MPAN=${OCTOPUS_ELECTRIC_MPAN}
+      - OCTOPUS_GAS_MPRN=${OCTOPUS_GAS_MPRN}
+      - OCTOPUS_ELECTRIC_SERIAL=${OCTOPUS_ELECTRIC_SERIAL}
+      - OCTOPUS_GAS_SERIAL=${OCTOPUS_GAS_SERIAL}
     networks:
       - monitoring
     restart: unless-stopped
