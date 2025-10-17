@@ -32,6 +32,19 @@ services:
       - GF_FEATURE_TOGGLES_ENABLE=ngalert
     volumes:
       - grafana-data:/var/lib/grafana
+    configs:
+      - source: grafana_datasource
+        target: /etc/grafana/provisioning/datasources/prometheus.yml
+      - source: grafana_dashboards_config
+        target: /etc/grafana/provisioning/dashboards/dashboards.yml
+      - source: synology_dashboard
+        target: /var/lib/grafana/dashboards/synology-nas-dashboard-new.json
+      - source: rag_dashboard
+        target: /var/lib/grafana/dashboards/rag-stack-dashboard.json
+      - source: container_dashboard
+        target: /var/lib/grafana/dashboards/container-monitoring-dashboard.json
+      - source: octopus_dashboard
+        target: /var/lib/grafana/dashboards/octopus-energy-dashboard.json
     networks:
       - monitoring
     restart: unless-stopped
@@ -40,20 +53,19 @@ services:
 
   # Optional: Node Exporter for host system monitoring
   node-exporter:
-    image: ghcr.io/josephrpalmer/octopus-usage-exporter:0.1.5
-    container_name: homelab-octopus-exporter-alt
+    image: prom/node-exporter:latest
+    container_name: homelab-node-exporter
     ports:
-      - "9121:9120"
-    environment:
-      - PROM_PORT=9120
-      - INTERVAL=300
-      - API_KEY=${OCTOPUS_API_KEY}
-      - ACCOUNT_NUMBER=${OCTOPUS_ACCOUNT_NUMBER}
-      - GAS=True
-      - ELECTRIC=True
-      - NG_METRICS=False
-      - TARIFF_RATES=True
-      - TARIFF_REMAINING=True
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
     networks:
       - monitoring
     restart: unless-stopped
@@ -73,21 +85,22 @@ services:
       - monitoring
     restart: unless-stopped
 
-  # Octopus Energy REST API Exporter
+  # Octopus Energy Usage Exporter
   octopus-exporter:
-    build: ./octopus-rest-exporter
+    image: ghcr.io/josephrpalmer/octopus-usage-exporter:0.1.5
     container_name: homelab-octopus-exporter
     ports:
       - "9120:9120"
     environment:
       - PROM_PORT=9120
       - INTERVAL=300
-      - OCTOPUS_API_KEY=${OCTOPUS_API_KEY}
-      - OCTOPUS_ACCOUNT_NUMBER=${OCTOPUS_ACCOUNT_NUMBER}
-      - OCTOPUS_ELECTRIC_MPAN=${OCTOPUS_ELECTRIC_MPAN}
-      - OCTOPUS_GAS_MPRN=${OCTOPUS_GAS_MPRN}
-      - OCTOPUS_ELECTRIC_SERIAL=${OCTOPUS_ELECTRIC_SERIAL}
-      - OCTOPUS_GAS_SERIAL=${OCTOPUS_GAS_SERIAL}
+      - API_KEY=${OCTOPUS_API_KEY}
+      - ACCOUNT_NUMBER=${OCTOPUS_ACCOUNT_NUMBER}
+      - GAS=True
+      - ELECTRIC=True
+      - NG_METRICS=False
+      - TARIFF_RATES=True
+      - TARIFF_REMAINING=True
     networks:
       - monitoring
     restart: unless-stopped
@@ -167,4 +180,17 @@ configs:
                 instance: 'synology-nas'
                 service: 'nas'
           scrape_interval: 30s
+
+  grafana_datasource:
+    file: ./monitoring/grafana/provisioning/datasources/prometheus.yml
+  grafana_dashboards_config:
+    file: ./monitoring/grafana/provisioning/dashboards/dashboards.yml
+  synology_dashboard:
+    file: ./monitoring/grafana/dashboards/synology-nas-dashboard-new.json
+  rag_dashboard:
+    file: ./monitoring/grafana/dashboards/rag-stack-dashboard.json
+  container_dashboard:
+    file: ./monitoring/grafana/dashboards/container-monitoring-dashboard.json
+  octopus_dashboard:
+    file: ./monitoring/grafana/dashboards/octopus-energy-dashboard.json
 
