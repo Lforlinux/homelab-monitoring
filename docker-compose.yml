@@ -72,6 +72,26 @@ services:
       - monitoring
     restart: unless-stopped
 
+  # Octopus Energy Usage Exporter
+  octopus-exporter:
+    image: ghcr.io/josephrpalmer/octopus-usage-exporter:latest
+    container_name: homelab-octopus-exporter
+    ports:
+      - "9120:9120"
+    environment:
+      - PROM_PORT=9120
+      - INTERVAL=300
+      - API_KEY=${OCTOPUS_API_KEY}
+      - ACCOUNT_NUMBER=${OCTOPUS_ACCOUNT_NUMBER}
+      - GAS=True
+      - ELECTRIC=True
+      - NG_METRICS=True
+      - TARIFF_RATES=True
+      - TARIFF_REMAINING=True
+    networks:
+      - monitoring
+    restart: unless-stopped
+
 volumes:
   prometheus-data:
     driver: local
@@ -129,6 +149,13 @@ configs:
           static_configs:
             - targets: ['grafana:3000']
           scrape_interval: 30s
+          metrics_path: /metrics
+
+        # Octopus Energy Usage Exporter
+        - job_name: 'octopus-exporter'
+          static_configs:
+            - targets: ['octopus-exporter:9120']
+          scrape_interval: 300s
           metrics_path: /metrics
 
         # Synology NAS monitoring
