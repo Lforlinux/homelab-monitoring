@@ -181,6 +181,16 @@ configs:
                 service: 'nas'
           scrape_interval: 30s
 
+        # Mac Mini monitoring
+        - job_name: 'mac-mini'
+          static_configs:
+            - targets: ['${MAC_MINI_IP:-192.168.1.147}:9100']
+              labels:
+                instance: 'mac-mini'
+                service: 'workstation'
+          scrape_interval: 15s
+          metrics_path: /metrics
+
   grafana_datasource:
     content: |
       apiVersion: 1

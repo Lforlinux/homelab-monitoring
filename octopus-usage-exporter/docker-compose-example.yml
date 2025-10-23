@@ -1,0 +1,20 @@
+version: "3.3"
+
+services:
+  octopus-usage-exporter:
+    image:  ghcr.io/josephrpalmer/octopus-usage-exporter:latest
+    container_name: octopus-usage-exporter
+    network_mode: bridge
+    restart: always
+    environment:
+      - PROM_PORT=9120
+      - INTERVAL=30
+      - API_KEY=abc123
+      - GAS=True
+      - ELECTRIC=True
+      - ACCOUNT_NUMBER=A-ABC12E04
+      - NG_METRICS=False
+      - TARIFF_RATES=True
+      - TARIFF_REMAINING=True
+    ports:
+      - "9120:9120"
